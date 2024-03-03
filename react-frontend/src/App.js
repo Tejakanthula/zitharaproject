@@ -1,23 +1,24 @@
 
+
 // App.js
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
-
 const App = () => {
   const [customers, setCustomers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('date');
+  const [sortField, setSortField] = useState('created_at');
+  const [sortOrder, setSortOrder] = useState('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage] = useState(20);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [currentPage, sortField, sortOrder]);
 
   const fetchData = async () => {
     try {
-      const response = await axios.get('http://localhost:5004/api/customer_data');
+      const response = await axios.get(`http://localhost:5009/api/customer_data?sortField=${sortField}&sortOrder=${sortOrder}`);
       setCustomers(response.data);
     } catch (error) {
       console.error('Error fetching data:', error);
@@ -26,6 +27,15 @@ const App = () => {
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
+  };
+
+  const handleSort = (field) => {
+    if (field === sortField) {
+      setSortOrder((prevOrder) => (prevOrder === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
   };
 
   const handleNextPage = () => {
@@ -43,22 +53,19 @@ const App = () => {
   );
 
   const sortedCustomers = [...filteredCustomers].sort((a, b) => {
-    const dateA = new Date(a.created_at);
-    const dateB = new Date(b.created_at);
+    const dateA = new Date(a[sortField]);
+    const dateB = new Date(b[sortField]);
 
-    if (sortBy === 'date') {
+    if (sortOrder === 'asc') {
       return dateA - dateB;
     } else {
-      return dateA.getTime() - dateB.getTime();
+      return dateB - dateA;
     }
   });
 
-  // Manually sort by sno in ascending order
-  const sortedBySno = [...sortedCustomers].sort((a, b) => a.sno - b.sno);
-
   const indexOfLastRecord = currentPage * recordsPerPage;
   const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-  const currentRecords = sortedBySno.slice(indexOfFirstRecord, indexOfLastRecord);
+  const currentRecords = sortedCustomers.slice(indexOfFirstRecord, indexOfLastRecord);
 
   return (
     <div>
@@ -67,12 +74,12 @@ const App = () => {
         placeholder="Search by name or location"
         onChange={(e) => setSearchTerm(e.target.value)}
       />
-      <select onChange={(e) => setSortBy(e.target.value)}>
-        <option value="date">Sort by Date</option>
+      <select onChange={(e) => handleSort(e.target.value)}>
+        <option value="created_at">Sort by Date</option>
         <option value="time">Sort by Time</option>
       </select>
       <table>
-        <thead>
+      <thead>
           <tr>
             <th>Sno</th>
             <th>Customer Name</th>
@@ -136,4 +143,5 @@ const Pagination = ({ recordsPerPage, totalRecords, currentPage, onPageChange, o
 };
 
 export default App;
+
 
